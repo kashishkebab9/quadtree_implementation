@@ -22,7 +22,7 @@ int main() {
   QuadtreeNode* root = new QuadtreeNode(0, box); 
   Quadtree qt(root);
   
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 20; i++) {
     Point point;
     point.position.x = rand() % 250 + (-250);
     point.position.y = rand() % 250 + (-250);

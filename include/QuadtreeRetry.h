@@ -51,7 +51,7 @@ class QuadtreeNode {
 
 
     void Subdivide() {
-      std::cout << "subdividing this node!" << std::endl;
+      std::cout << "Subdividing this node!" << std::endl;
 
       //we want to manage the current memory of the elements in our vector and place them into the correct pointers
       Box ne_box;
@@ -137,25 +137,18 @@ class Quadtree {
       float p_y = point.position.x;
 
       while (iter->subdivided) {
-        std::cout << "Reached here" << std::endl;
-        std::cout <<"iter->box.position.x: " << iter->box.position.x << std::endl;
-        std::cout <<"iter->box.position.y: " << iter->box.position.y << std::endl;
 
         if (p_y > iter->box.position.y) {
           if(p_x > iter->box.position.x) {
             iter = iter->ne;
-            std::cout << "Reached here 1" << std::endl;
           } else {
             iter = iter->nw;
-            std::cout << "Reached here 1" << std::endl;
           }
         } else {
           if(p_x > iter->box.position.x) {
             iter = iter->se;
-            std::cout << "Reached here 1" << std::endl;
           } else {
             iter = iter->sw;
-            std::cout << "Reached here 1" << std::endl;
           }
         }
 
@@ -163,16 +156,14 @@ class Quadtree {
 
       if (iter->depth == this->depth_limit) {
         std::cout << "At Depth Limit, appending to current list" << std::endl;
-        std::cout << "iter depth: " << iter->depth << std::endl;
-        std::cout << " depth limit: " << this->depth_limit << std::endl;
         iter->elements.push_back(point);
 
 
       } else {
         iter->elements.push_back(point);
+        std::cout << "Not at Depth Limit!" << std::endl;
 
-        if(iter->elements.size() == this->el_limit) {
-          std::cout << "Reaching Subdivide Function!" << std::endl;
+        if(!(iter->elements.size() < this->el_limit)) {
           iter->Subdivide();
         }
           
