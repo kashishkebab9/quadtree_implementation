@@ -32,6 +32,7 @@ class Quadtree {
 
     Box box;
     int depth;
+    int depth_limit;
     bool subdivided;
     int el_limit;
     std::vector<Point> elements;
@@ -40,99 +41,112 @@ class Quadtree {
   public:
 
     Quadtree(int depth_, Box box_) {
+      std::cout << "Created Quadtree with Depth: " << depth_ << std::endl;
       ne = nullptr;
       nw = nullptr;
       se = nullptr; 
       sw = nullptr; 
 
       // we will not have more than 3 elements within a quad
+      this->depth = depth_;
       el_limit = 3;
+      depth_limit = 4;
       subdivided = false;
     }
 
-    void subdivide() {
+    void subdivide(Quadtree* qt) {
       //we want to manage the current memory of the elements in our vector and place them into the correct pointers
       Box ne_box;
-      ne_box.position.x = this->box.position.x + this->box.width/4;
-      ne_box.position.y = this->box.position.y + this->box.height/4;
-      ne_box.width = this->box.width/2;
-      ne_box.height = this->box.height/2;
-
-      this->ne = new Quadtree(this->depth + 1, ne_box);
+      ne_box.position.x = qt->box.position.x + qt->box.width/4;
+      ne_box.position.y = qt->box.position.y + qt->box.height/4;
+      ne_box.width = qt->box.width/2;
+      ne_box.height = qt->box.height/2;
+      Quadtree ne_qt(qt->depth + 1, ne_box);
+      qt->ne = &ne_qt;
 
       Box nw_box;
-      nw_box.position.x = this->box.position.x - this->box.width/4;
-      nw_box.position.y = this->box.position.y + this->box.height/4;
-      nw_box.width = this->box.width/2;
-      nw_box.height = this->box.height/2;
+      nw_box.position.x = qt->box.position.x - qt->box.width/4;
+      nw_box.position.y = qt->box.position.y + qt->box.height/4;
+      nw_box.width = qt->box.width/2;
+      nw_box.height = qt->box.height/2;
 
-      this->nw = new Quadtree(this->depth + 1, nw_box);
+      qt->nw = new Quadtree(qt->depth + 1, nw_box);
 
       Box se_box;
-      se_box.position.x = this->box.position.x + this->box.width/4;
-      se_box.position.y = this->box.position.y - this->box.height/4;
-      se_box.width = this->box.width/2;
-      se_box.height = this->box.height/2;
+      se_box.position.x = qt->box.position.x + qt->box.width/4;
+      se_box.position.y = qt->box.position.y - qt->box.height/4;
+      se_box.width = qt->box.width/2;
+      se_box.height = qt->box.height/2;
 
-      this->se = new Quadtree(this->depth + 1, se_box);
+      qt->se = new Quadtree(qt->depth + 1, se_box);
 
       Box sw_box;
-      sw_box.position.x = this->box.position.x - this->box.width/4;
-      sw_box.position.y = this->box.position.y - this->box.height/4;
-      sw_box.width = this->box.width/2;
-      sw_box.height = this->box.height/2;
+      sw_box.position.x = qt->box.position.x - qt->box.width/4;
+      sw_box.position.y = qt->box.position.y - qt->box.height/4;
+      sw_box.width = qt->box.width/2;
+      sw_box.height = qt->box.height/2;
 
-      this->sw = new Quadtree(this->depth + 1, sw_box);
+      qt->sw = new Quadtree(qt->depth + 1, sw_box);
 
-      for (auto n: elements) {
-        if(n.position.y > this->box.position.y) {
-          if (n.position.x > this->box.position.x) {
-            this->ne->elements.push_back(n);
+      for (auto n: qt->elements) {
+        if(n.position.y > qt->box.position.y) {
+          if (n.position.x > qt->box.position.x) {
+            qt->ne->elements.push_back(n);
           } else {
-            this->nw->elements.push_back(n);
+            qt->nw->elements.push_back(n);
           }
 
         } else {
-          if (n.position.x > this->box.position.x) {
-            this->se->elements.push_back(n);
+          if (n.position.x > qt->box.position.x) {
+            qt->se->elements.push_back(n);
           } else {
-            this->sw->elements.push_back(n);
+            qt->sw->elements.push_back(n);
           }
         }
 
         
       }
-      //make sure to empty out the elements of this quadtree
-      this->elements.clear();
-      this->subdivided = true;
+      //make sure to empty out the elements of qt quadtree
+      qt->elements.clear();
+      qt->subdivided = true;
     }
 
-    void insert(Point point) {
+    // There is a major issue with this recursive function
+    // It is referencing only the root's information and not the quadtree it is iterating on
+    void insert(Quadtree* qt, Point point) {
 
-      if (!subdivided) {
-        if (elements.size() < this->el_limit) {
+      if (!qt->subdivided) {
+        if (qt->elements.size() < qt->el_limit) {
           // if we are not at the limit, simply add it to the quadtree's current element list
-          this->elements.push_back(point);
+          qt->elements.push_back(point);
           
-        } else if(elements.size() == this->el_limit) {
+        } else if(qt->elements.size() == qt->el_limit) {
 
           // if we are not at the limit, subdivide (which should be where the current list should get managed) and then append this one appropriately 
-          this->elements.push_back(point);
-          this->subdivide(); 
+          qt->elements.push_back(point);
 
+          if(depth < depth_limit) {
+            qt->subdivide(qt); 
+          }
         }
-
-
-
       } else {
-          this->elements.push_back(point);
+        std::cout << "Quadtree has already been subdivided!" << std::endl;
+        // if already subdivided, we need to perform insert on the correct quadrant:
+        if(point.position.y > qt->box.position.y) {
+          if (point.position.x > qt->box.position.x) {
+            qt->ne->insert(qt->ne, point);
+          } else {
+            qt->nw->insert(qt->nw, point);
+          }
 
+        } else {
+          if (point.position.x > qt->box.position.x) {
+            qt->se->insert(qt->se, point);
+          } else {
+            qt->sw->insert(qt->sw, point);
+          }
+        }
       }
-
-
     }
-
-
-
   
 };
